@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import FileUpload from "@/app/components/FileUpload";
 import Flashcard from '@/app/components/Flashcard';
 
@@ -10,7 +10,14 @@ export default function Home() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleFileUpload = async (file) => {
+  useEffect(() => {
+    const storedLogin = localStorage.getItem("isLoggedIn");
+    if (storedLogin === "true") {
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+  const handleFileUpload = async (file: { name: any; }) => {
     // Simulate text extraction (replace with actual PDF/Word parsing logic)
     const extractedText = `Sample text extracted from ${file.name}.`;
     setText(extractedText);
@@ -27,11 +34,16 @@ export default function Home() {
     // Simple authentication logic (replace with real auth system)
     if (username === 'user' && password === 'password') {
       setIsLoggedIn(true);
+      localStorage.setItem("isLoggedIn", "true");
     } else {
       alert('Invalid credentials');
     }
   };
 
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    localStorage.removeItem("isLoggedIn");
+  };
   return (
     <div className="min-h-screen bg-gray-100 py-8">
       <div className="max-w-3xl mx-auto px-4">
@@ -61,7 +73,15 @@ export default function Home() {
           </div>
         ) : (
           <>
-            <h1 className="text-3xl font-bold text-center mb-8 text-black">Flashcard Generator</h1>
+            <div className="flex justify-between items-center mb-8">
+              <h1 className="text-3xl font-bold text-black">Flashcard Generator</h1>
+              <button
+                onClick={handleLogout}
+                className="bg-red-500 text-white p-2 rounded"
+              >
+                Logout
+              </button>
+            </div>
             <FileUpload onFileUpload={handleFileUpload} />
             {text && (
               <div className="mt-8">
