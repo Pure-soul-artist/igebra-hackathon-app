@@ -1,32 +1,52 @@
 import { NextResponse } from "next/server";
 import multer from "multer";
-import { writeFile } from "fs/promises";
 import path from "path";
+import fs from "fs";
 
-// Configure multer storage
+// Disable body parser for file upload route
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+// Set up multer to handle file uploads with memory storage
 const upload = multer({ storage: multer.memoryStorage() });
 
 export async function POST(req) {
-  try {
-    const formData = await req.formData();
-    const file = formData.get("file");
+  return new Promise((resolve, reject) => {
+    // Debug: Log to check if multer is processing the file
+    console.log("Request headers:", req.headers);
 
-    if (!file) {
-      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
-    }
+    upload.single("file")(req, {}, async (err) => {
+      if (err) {
+        console.error("Multer error:", err);
+        return resolve(NextResponse.json({ error: "File upload failed." }, { status: 500 }));
+      }
 
-    // Save file locally (Optional: You can use cloud storage like AWS S3)
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const filePath = path.join(process.cwd(), "public/uploads", file.name);
-    await writeFile(filePath, buffer);
+      if (!req.file) {
+        console.log("No file uploaded");
+        return resolve(NextResponse.json({ error: "No file uploaded" }, { status: 400 }));
+      }
 
-    return NextResponse.json({
-      message: "File uploaded successfully",
-      fileName: file.name,
-      filePath: `/uploads/${file.name}`,
+      console.log("File uploaded:", req.file);
+
+      // Define the upload directory
+      const dir = path.join(process.cwd(), "public", "uploads");
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+
+      // Save the file to the server
+      const filePath = path.join(dir, req.file.originalname);
+      fs.writeFileSync(filePath, req.file.buffer);
+
+      // Respond with the file information
+      return resolve(NextResponse.json({
+        message: "File uploaded successfully",
+        fileName: req.file.originalname,
+        filePath: `/uploads/${req.file.originalname}`,
+      }));
     });
-  } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  });
 }

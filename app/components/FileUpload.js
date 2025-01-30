@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 
 const FileUpload = ({ onFileUpload }) => {
   const [file, setFile] = useState(null);
@@ -18,16 +18,34 @@ const FileUpload = ({ onFileUpload }) => {
     }
   };
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (file) {
-      onFileUpload(file);
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Upload the file
+      const uploadResponse = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const uploadData = await uploadResponse.json();
+      if (uploadResponse.ok) {
+        alert(uploadData.message);
+        onFileUpload(uploadData); // Pass the response data back to the parent
+      } else {
+        alert(uploadData.error || "Upload failed.");
+      }
     }
   };
 
   return (
-    <div 
-      className={`flex flex-col items-center space-y-6 bg-white p-6 rounded-lg shadow-lg w-full max-w-md mx-auto border-2 border-dashed ${dragging ? 'border-blue-500 bg-blue-50' : 'border-blue-300'}`} 
-      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+    <div
+      className={`flex flex-col items-center space-y-6 bg-white p-6 rounded-lg shadow-lg w-full max-w-md mx-auto border-2 border-dashed ${dragging ? 'border-blue-500 bg-blue-50' : 'border-blue-300'}`}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragging(true);
+      }}
       onDragLeave={() => setDragging(false)}
       onDrop={handleDrop}
     >
