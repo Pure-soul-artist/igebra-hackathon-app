@@ -2,10 +2,20 @@ import { useState } from 'react';
 
 const FileUpload = ({ onFileUpload }) => {
   const [file, setFile] = useState(null);
+  const [dragging, setDragging] = useState(false);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     setFile(selectedFile);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragging(false);
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile) {
+      setFile(droppedFile);
+    }
   };
 
   const handleUpload = () => {
@@ -15,8 +25,13 @@ const FileUpload = ({ onFileUpload }) => {
   };
 
   return (
-    <div className="flex flex-col items-center space-y-6 bg-white p-6 rounded-lg shadow-lg w-full max-w-md mx-auto">
-      <label className="w-full text-center cursor-pointer border-2 border-dashed border-blue-300 rounded-lg p-4 hover:bg-blue-50 transition">
+    <div 
+      className={`flex flex-col items-center space-y-6 bg-white p-6 rounded-lg shadow-lg w-full max-w-md mx-auto border-2 border-dashed ${dragging ? 'border-blue-500 bg-blue-50' : 'border-blue-300'}`} 
+      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={handleDrop}
+    >
+      <label className="w-full text-center cursor-pointer p-4">
         <input
           type="file"
           accept=".pdf,.doc,.docx"

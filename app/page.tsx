@@ -17,17 +17,35 @@ export default function Home() {
     }
   }, []);
 
-  const handleFileUpload = async (file: { name: any; }) => {
-    // Simulate text extraction (replace with actual PDF/Word parsing logic)
-    const extractedText = `Sample text extracted from ${file.name}.`;
+  const handleFileUpload = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Upload file
+    const uploadResponse = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    });
+    const uploadData = await uploadResponse.json();
+
+    if (!uploadResponse.ok) {
+      alert(uploadData.error);
+      return;
+    }
+
+    // Extract text (simulate or integrate with an extraction API)
+    const extractedText = `Sample extracted text from ${uploadData.fileName}`;
     setText(extractedText);
 
-    // Simulate Q&A generation (replace with AI-based logic)
-    const generatedFlashcards = [
-      { question: 'What is the capital of France?', answer: 'Paris' },
-      { question: 'What is 2 + 2?', answer: '4' },
-    ];
-    setFlashcards(generatedFlashcards);
+    // Process with AI
+    const aiResponse = await fetch('/api/process', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: extractedText }),
+    });
+
+    const aiData = await aiResponse.json();
+    setFlashcards(aiData.flashcards || []);
   };
 
   const handleLogin = () => {
