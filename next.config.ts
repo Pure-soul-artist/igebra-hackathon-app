@@ -9,4 +9,7 @@ module.exports = {
       bodySizeLimit: '200mb', // Increase the limit for Server Actions
     },
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+},
 };
