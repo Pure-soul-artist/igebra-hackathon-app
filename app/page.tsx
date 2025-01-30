@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import FileUpload from "@/app/components/FileUpload"; // Import FileUpload
 import Flashcard from "@/app/components/Flashcard"; // Import Flashcard
+import React from "react";
 
 export default function Home() {
   const [text, setText] = useState("");
