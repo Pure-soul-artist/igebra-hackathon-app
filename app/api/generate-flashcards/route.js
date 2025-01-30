@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
-import { HfInference } from "@huggingface/inference";
-import spacy from "spacy";
+import { exec } from "child_process";
+import fs from "fs";
+import path from "path";
 
-// Initialize Hugging Face Inference API
-const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
+const HUGGINGFACE_API_KEY = process.env.HUGGINGFACE_API_KEY;
 
 export async function POST(req) {
   try {
     const { text } = await req.json();
 
-    // Step 1: Dependency Parsing with spaCy to Extract Relations
-    const parsedRelations = extractRelationsFromText(text);
+    // Step 1: Call Python script for relation extraction
+    const parsedRelations = await extractRelationsFromText(text);
 
     // Step 2: Generate Flashcards from Relations
     const flashcards = [];
@@ -26,38 +26,44 @@ export async function POST(req) {
 
     return NextResponse.json({ flashcards });
   } catch (error) {
+    console.error("Error during flashcard generation:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-function extractRelationsFromText(text) {
-  const doc = spacy.nlp(text);
-  const relations = [];
-
-  for (let sent of doc.sents) {
-    for (let token of sent) {
-      if (token.dep_ === "nsubj" && token.head.dep_ in ["ROOT", "attr"]) {
-        const subject = token.text;
-        const verb = token.head.text;
-        const object = [...token.head.children].filter(child => child.dep_ === "prep").map(child => child.text).join(" ");
-        
-        relations.push({
-          subject,
-          verb,
-          object
-        });
+// Function to call Python script
+async function extractRelationsFromText(text) {
+  return new Promise((resolve, reject) => {
+    const pythonScriptPath = path.join(__dirname, 'extract_relations.py');
+    
+    exec(`python3 ${pythonScriptPath} "${text}"`, (error, stdout, stderr) => {
+      if (error || stderr) {
+        console.error(`Error executing Python script: ${stderr || error}`);
+        reject(new Error("Failed to parse relations"));
+      } else {
+        const relations = JSON.parse(stdout);
+        resolve(relations);
       }
-    }
-  }
-  return relations;
+    });
+  });
 }
 
+// Function to generate answers using Hugging Face API
 async function generateAnswerFromModel(context, question) {
-  const response = await hf.questionAnswering({
-    model: "deepset/roberta-base-squad2",
-    context,
-    question
-  });
+  try {
+    const response = await fetch("https://api-inference.huggingface.co/models/deepset/roberta-base-squad2", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${HUGGINGFACE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ context, question }),
+    });
 
-  return response.answer || "Answer not found";
+    const result = await response.json();
+    return result.answer || "Answer not found";
+  } catch (error) {
+    console.error("Error generating answer:", error);
+    return "Answer not found";
+  }
 }
